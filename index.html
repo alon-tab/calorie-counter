@@ -428,13 +428,13 @@ footer.bar button:hover{background:#eef4f1}
 
 <footer class="bar">
   <div class="inner">
-    <button id="navBackup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 17v1.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V17"/></svg>גיבוי</button>
-    <button id="navRestore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V5"/><path d="M7.5 9.5L12 5l4.5 4.5"/><path d="M4.5 17v1.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V17"/></svg>שחזור</button>
+    <button id="navBackup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 17v1.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V17"/></svg>גיבוי ושחזור</button>
     <button id="navCustom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.1-4L16.2 4.9a2.05 2.05 0 0 1 2.9 2.9L8 18.9 4 20z"/><path d="M14.3 6.8l2.9 2.9"/></svg>מוצר ידני</button>
     <button id="navSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.1"/><path d="M12 3.2v2.4M12 18.4v2.4M3.2 12h2.4M18.4 12h2.4M5.8 5.8l1.7 1.7M16.5 16.5l1.7 1.7M18.2 5.8l-1.7 1.7M7.5 16.5l-1.7 1.7"/></svg>הגדרות</button>
     <button id="navTrack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v15.2h16"/><path d="M7.2 14.5l3.6-4.4 3 2.8 4-5.4"/></svg>מעקב</button>
+    <button id="navExercise"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14.5" cy="4.5" r="1.8"/><path d="M9 21l2.5-6-2.5-2.5 2-4.5 3.5 2.5 3 .5"/><path d="M6 12l3-3.5"/></svg>פעילות</button>
     <button id="navInfo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M12 11v5"/><circle cx="12" cy="7.7" r="1.15" fill="currentColor" stroke="none"/></svg>מידע</button>
-    <input type="file" id="restoreFile" accept="application/json,.json" class="hidden">
+    <input type="file" id="restoreFile" class="hidden">
   </div>
 </footer>
 
@@ -464,6 +464,7 @@ const LS_KEY = 'calorie-counter.v1';
 let S = loadState();
 let curDay = todayStr();
 
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
 function loadState(){
   try{
     const raw = localStorage.getItem(LS_KEY);
@@ -1185,37 +1186,194 @@ function customModal(){
 }
 
 /* ===== גיבוי ושחזור ===== */
+function backupPayload(){
+  return {app:'calorie-counter', v:1, exportedAt:new Date().toISOString(), days:S.days, custom:S.custom, saved:S.saved, profile:S.profile, weights:S.weights||[], goal:(S.goal>0?S.goal:null)};
+}
+function isStandalone(){
+  return !!(window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+}
 function doBackup(){
-  const payload = {app:'calorie-counter', v:1, exportedAt:new Date().toISOString(), days:S.days, custom:S.custom, saved:S.saved, profile:S.profile, weights:S.weights||[], goal:(S.goal>0?S.goal:null)};
-  const blob = new Blob([JSON.stringify(payload,null,1)], {type:'application/json'});
+  const text = JSON.stringify(backupPayload(),null,1);
+  const name = 'calories-backup-'+todayStr()+'.json';
+  let file = null;
+  try{ file = new File([text], name, {type:'application/json'}); }catch(e){}
+  if(file && navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+    navigator.share({files:[file], title:'גיבוי סופרת הקלוריות'})
+      .then(()=>toast('הגיבוי נשלח ✓'))
+      .catch(err=>{ if(!err || err.name!=='AbortError') downloadBackup(text,name); });
+    return;
+  }
+  downloadBackup(text,name);
+}
+function downloadBackup(text,name){
+  const blob = new Blob([text], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'calories-backup-'+todayStr()+'.json';
+  a.download = name;
+  document.body.appendChild(a);
   a.click();
+  a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
   toast('קובץ הגיבוי ירד למכשיר ✓');
 }
+async function copyBackup(){
+  const text = JSON.stringify(backupPayload());
+  try{ await navigator.clipboard.writeText(text); toast('הגיבוי הועתק ✓ אפשר להדביק אותו בהודעה לעצמך'); }
+  catch(e){
+    const ta = $('#bkText'); ta.value = text; ta.focus(); ta.select();
+    try{ document.execCommand('copy'); toast('הגיבוי הועתק ✓'); }catch(_){ toast('סימנתי את הטקסט, העתיקי אותו ידנית'); }
+  }
+}
+function backupModal(){
+  const where = isStandalone()
+    ? 'את/ה עכשיו באפליקציה שנוספה למסך הבית.'
+    : 'את/ה עכשיו בדפדפן (לא באפליקציה ממסך הבית).';
+  openModal(`
+    <div class="modal-head"><h3>גיבוי ושחזור</h3><button class="icon-btn" data-x>✖️</button></div>
+    <div class="confirm-warn" style="background:var(--brand-soft);color:var(--ink)">ℹ️ <span><b>${where}</b> בדפדפן ובאפליקציה ממסך הבית (במיוחד באייפון) הנתונים נשמרים בנפרד. כדי להעביר נתונים מהדפדפן לאפליקציה: גבי בדפדפן, ואז שחזרי בתוך האפליקציה.</span></div>
+    <h4 style="margin-top:6px">גיבוי</h4>
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="btn btn-brand" id="bkSave" style="flex:1">שמירה / שיתוף קובץ</button>
+      <button class="btn btn-ghost" id="bkCopy" style="flex:1">העתקה כטקסט</button>
+    </div>
+    <h4 style="margin-top:10px">שחזור</h4>
+    <button class="btn btn-brand btn-block" id="bkFile">בחירת קובץ גיבוי</button>
+    <p class="hint" style="margin:6px 0 4px">אם אי אפשר לבחור את הקובץ, הדביקי כאן את טקסט הגיבוי:</p>
+    <div class="field"><textarea id="bkText" rows="3" dir="ltr" placeholder="הדבקת טקסט גיבוי" style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:10px;font-family:inherit"></textarea></div>
+    <button class="btn btn-ghost btn-block" id="bkPaste" style="margin-top:8px">שחזור מהטקסט</button>
+    <p class="hint">שחזור מחליף את כל הנתונים הקיימים באפליקציה.</p>`);
+  modalRoot.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
+  $('#bkSave').onclick = doBackup;
+  $('#bkCopy').onclick = copyBackup;
+  $('#bkFile').onclick = ()=> $('#restoreFile').click();
+  $('#bkPaste').onclick = ()=>{
+    const t = $('#bkText').value.trim();
+    if(!t){ toast('אין טקסט להדביק'); return; }
+    doRestoreText(t);
+  };
+}
 function doRestoreFile(file){
   const rd = new FileReader();
-  rd.onload = ()=>{
-    let data;
-    try{ data = JSON.parse(rd.result); }
-    catch(e){ toast('הקובץ לא תקין — לא שוחזר'); return; }
-    if(!data || typeof data!=='object' || typeof data.days!=='object' || data.days===null){
-      toast('הקובץ לא נראה כמו גיבוי של האפליקציה'); return;
-    }
-    showConfirm({
-      title:'שחזור מגיבוי',
-      text:'הקובץ תקין. לשחזר את הנתונים?',
-      warn:'פעולה זו תחליף ותמחק את כל הנתונים הקיימים כרגע באפליקציה. אם יש נתונים חשובים — כדאי להוריד גיבוי שלהם קודם.',
-      okLabel:'כן, שחזרי',
-      onOk:()=>{
-        S = {v:1, days:data.days, custom:Array.isArray(data.custom)?data.custom:[], saved:Array.isArray(data.saved)?data.saved:[], profile:(data.profile && typeof data.profile==='object')?data.profile:null, weights:Array.isArray(data.weights)?data.weights.filter(e=>e && e.d && e.kg>0):[], goal:(data.goal>0?data.goal:null)};
-        saveState(); render(); toast('הנתונים שוחזרו ✓');
-      }
-    });
-  };
+  rd.onload = ()=> doRestoreText(String(rd.result));
+  rd.onerror = ()=> toast('לא הצלחתי לקרוא את הקובץ');
   rd.readAsText(file);
+}
+function doRestoreText(raw){
+  let data;
+  try{ data = JSON.parse(raw); }
+  catch(e){ toast('הקובץ לא תקין — לא שוחזר'); return; }
+  if(!data || typeof data!=='object' || typeof data.days!=='object' || data.days===null){
+    toast('הקובץ לא נראה כמו גיבוי של האפליקציה'); return;
+  }
+  const nDays = Object.keys(data.days).length;
+  showConfirm({
+    title:'שחזור מגיבוי',
+    text:`הגיבוי תקין ומכיל ${nDays} ימים עם רישומים. לשחזר את הנתונים?`,
+    warn:'פעולה זו תחליף ותמחק את כל הנתונים הקיימים כרגע באפליקציה. אם יש נתונים חשובים — כדאי להוריד גיבוי שלהם קודם.',
+    okLabel:'כן, שחזרי',
+    onOk:()=>{
+      S = {v:1, days:data.days, custom:Array.isArray(data.custom)?data.custom:[], saved:Array.isArray(data.saved)?data.saved:[], profile:(data.profile && typeof data.profile==='object')?data.profile:null, weights:Array.isArray(data.weights)?data.weights.filter(e=>e && e.d && e.kg>0):[], goal:(data.goal>0?data.goal:null)};
+      saveState(); render(); toast('הנתונים שוחזרו ✓');
+    }
+  });
+}
+
+/* ===== פעילות גופנית ===== */
+/* ערכי MET מתוך Compendium of Physical Activities (pacompendium.com). קלוריות = MET × משקל בק״ג × שעות. מהירות (קמ״ש) היא אמצע הטווח שבתיאור הפעילות ב-Compendium. */
+const EXERCISES = [
+  {g:'הליכה', n:'הליכה איטית (כ-3–4 קמ״ש)', met:2.8, kmh:3.5},
+  {g:'הליכה', n:'הליכה בינונית (כ-4.5–5.5 קמ״ש)', met:3.8, kmh:5},
+  {g:'הליכה', n:'הליכה מהירה (כ-5.6–6.3 קמ״ש)', met:4.8, kmh:6},
+  {g:'הליכה', n:'הליכה מהירה מאוד (כ-6.4–7.1 קמ״ש)', met:5.5, kmh:6.8},
+  {g:'הליכה', n:'טיול רגלי בשטח פתוח', met:5.3},
+  {g:'ריצה', n:'ריצה קלה (כ-6.5 קמ״ש)', met:6.5, kmh:6.6},
+  {g:'ריצה', n:'ריצה (כ-8 קמ״ש)', met:8.5, kmh:8.2},
+  {g:'ריצה', n:'ריצה (כ-10 קמ״ש)', met:9.3, kmh:9.9},
+  {g:'אופניים', n:'רכיבה נינוחה (מתחת ל-16 קמ״ש)', met:4.0},
+  {g:'אופניים', n:'רכיבה קלה (כ-16–19 קמ״ש)', met:6.8, kmh:17.5},
+  {g:'אופניים', n:'רכיבה בינונית (כ-19–22 קמ״ש)', met:8.0, kmh:20.5},
+  {g:'אופניים', n:'רכיבה מהירה (כ-22–25 קמ״ש)', met:10.0, kmh:24},
+  {g:'שחייה', n:'שחייה רגועה, סגנון חופשי', met:5.8},
+  {g:'שחייה', n:'שחייה מהירה, סגנון חופשי', met:9.8},
+  {g:'שחייה', n:'התעמלות במים', met:5.3},
+  {g:'אימון בבית ובחדר כושר', n:'אימון כוח כללי', met:3.5},
+  {g:'אימון בבית ובחדר כושר', n:'אימון כוח בעצימות גבוהה', met:6.0},
+  {g:'אימון בבית ובחדר כושר', n:'אימון אינטרוולים (HIIT) בעצימות בינונית', met:7.0},
+  {g:'אימון בבית ובחדר כושר', n:'אליפטיקל בעצימות בינונית', met:5.0},
+  {g:'אימון בבית ובחדר כושר', n:'חתירה במכשיר, עצימות בינונית', met:5.0},
+  {g:'אימון בבית ובחדר כושר', n:'קפיצה בחבל', met:11.0},
+  {g:'אימון בבית ובחדר כושר', n:'עלייה במדרגות', met:6.8},
+  {g:'גוף ונפש', n:'יוגה (האטה)', met:2.3},
+  {g:'גוף ונפש', n:'פילאטיס', met:2.8},
+  {g:'גוף ונפש', n:'מתיחות קלות', met:2.3},
+  {g:'ריקוד ואירובי', n:'אירובי בעצימות נמוכה', met:4.8},
+  {g:'ריקוד ואירובי', n:'זומבה (שיעור קבוצתי)', met:6.5},
+  {g:'ריקוד ואירובי', n:'ריקוד עממי / אתני', met:4.5},
+  {g:'ספורט', n:'כדורגל (משחק שכונתי)', met:7.0},
+  {g:'ספורט', n:'כדורסל', met:7.5},
+  {g:'ספורט', n:'טניס זוגות', met:6.0},
+  {g:'ספורט', n:'טניס יחידים', met:8.0},
+  {g:'ספורט', n:'טניס שולחן', met:4.0}
+];
+function exWeight(){
+  const w = weightEntries();
+  if(w.length) return {kg:w[w.length-1].kg, src:'לפי המשקל האחרון שרשמת במעקב'};
+  if(S.profile && S.profile.w>0) return {kg:+S.profile.w, src:'לפי המשקל בהגדרות'};
+  return {kg:70, src:'משקל לדוגמה של 70 ק״ג, עדכנו כאן את המשקל שלכם'};
+}
+function exerciseModal(){
+  const wi = exWeight();
+  const groups = [...new Set(EXERCISES.map(e=>e.g))];
+  openModal(`
+    <div class="modal-head"><h3>פעילות גופנית</h3><button class="icon-btn" data-x>✖️</button></div>
+    <div class="row">
+      <div class="field"><label>משקל (ק״ג)</label><input type="number" id="exKg" min="20" max="400" step="any" inputmode="decimal" value="${wi.kg}"></div>
+      <div class="field"><label>פעילות</label><select id="exSel">${EXERCISES.map((e,i)=>`<option value="${i}">${esc(e.n)}</option>`).join('')}</select></div>
+    </div>
+    <p class="hint" id="exSrc">${esc(wi.src)}</p>
+    <div class="row">
+      <div class="field"><label>מדידה לפי</label><select id="exMode"><option value="t">זמן (דקות)</option></select></div>
+      <div class="field"><label id="exAmtL">דקות</label><input type="number" id="exAmt" min="0" step="any" inputmode="decimal" value="30"></div>
+    </div>
+    <div class="preview" id="exOut"></div>
+    <h4 style="margin:12px 0 4px">טבלת השוואה</h4>
+    <div id="exTable"></div>
+    <p class="hint">ההערכה היא ממוצע כללי לפי ערכי MET (Compendium of Physical Activities, pacompendium.com): קלוריות = MET × משקל × שעות. הצריכה בפועל משתנה בין אנשים לפי גיל, כושר ועצימות, והמספרים כוללים גם את הקלוריות שהגוף שורף במנוחה. מהירויות הן אמצע הטווח שמופיע במקור. זו הערכה גסה, לא ייעוץ רפואי.</p>`);
+  modalRoot.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
+  const kgEl=$('#exKg'), sel=$('#exSel'), mode=$('#exMode'), amt=$('#exAmt');
+  const cur=()=>EXERCISES[+sel.value];
+  const kg=()=>{ const v=parseFloat(kgEl.value); return v>0?v:0; };
+  function setModes(){
+    const e=cur();
+    mode.innerHTML='<option value="t">זמן (דקות)</option>'+(e.kmh?'<option value="d">מרחק (ק״מ)</option>':'');
+    upd();
+  }
+  function upd(){
+    const e=cur(), w=kg();
+    $('#exAmtL').textContent = mode.value==='d'?'ק״מ':'דקות';
+    const a=parseFloat(amt.value);
+    if(!(w>0) || !(a>0)){ $('#exOut').textContent='הזינו משקל וכמות'; return; }
+    const hours = mode.value==='d' ? a/e.kmh : a/60;
+    const kcal = e.met*w*hours;
+    const mins = hours*60;
+    $('#exOut').innerHTML = `≈ ${Math.round(kcal).toLocaleString('he-IL')} קק״ל<small>${mode.value==='d'?`כ-${Math.round(mins)} דקות במהירות של כ-${e.kmh} קמ״ש · `:''}MET ${e.met} · ${w} ק״ג</small>`;
+  }
+  function table(){
+    const w=kg(); let h='';
+    if(!(w>0)){ $('#exTable').innerHTML=''; return; }
+    for(const g of groups){
+      h+=`<div class="hint" style="margin:8px 0 2px;font-weight:700">${esc(g)}</div>`;
+      EXERCISES.forEach((e,i)=>{ if(e.g!==g) return;
+        const k30=Math.round(e.met*w*0.5), km=e.kmh?Math.round(e.met*w/e.kmh):0;
+        h+=`<button class="btn btn-ghost btn-block" data-ex="${i}" style="text-align:right;margin-bottom:4px;padding:8px 12px;font-size:.84rem;display:flex;justify-content:space-between;gap:8px"><span>${esc(e.n)}</span><span style="white-space:nowrap">${k30} קק״ל ל-30 דק׳${km?` · ${km} לק״מ`:''}</span></button>`;
+      });
+    }
+    $('#exTable').innerHTML=h;
+    $('#exTable').querySelectorAll('[data-ex]').forEach(b=>b.onclick=()=>{ sel.value=b.dataset.ex; setModes(); sel.scrollIntoView({block:'center'}); });
+  }
+  sel.onchange=setModes; mode.onchange=upd; amt.oninput=upd;
+  kgEl.oninput=()=>{ upd(); table(); };
+  setModes(); table();
 }
 
 /* ===== מידע ===== */
@@ -1232,7 +1390,9 @@ function infoModal(){
     · בכמויות של <b>כוס</b> אפשר להזין מספר עשרוני (למשל 0.5) או לבחור בכפתורי הקיצור ⅓, ½ וכדומה.<br>
     · 📌 ליד כל ארוחה שומר אותה כ<b>ארוחה שמורה</b> עם כל הפירוט — אפשר להוסיף אותה שוב בלחיצה אחת, לערוך ולשמור כגרסה חדשה.<br>
     · בחלון הוספת מצרך מופיעים <b>הקבועים שלך</b> — המוצרים שנרשמים הכי הרבה, עם הכמות הרגילה, להוספה מהירה.<br>
-    · מומלץ לעשות <b>גיבוי</b> מדי פעם (כפתור הגיבוי למטה) ולשמור את הקובץ.<br>
+    · מומלץ לעשות <b>גיבוי</b> מדי פעם (כפתור גיבוי ושחזור למטה) ולשמור את הקובץ.<br>
+    · <b>פעילות</b> (בתפריט התחתון) — הערכת קלוריות שנשרפות בפעילויות שונות לפי זמן או מרחק ולפי המשקל שלך.<br>
+    · <b>גיבוי ושחזור</b> — האפליקציה ממסך הבית והדפדפן שומרים נתונים בנפרד, לכן להעברה ביניהם יש לגבות באחד ולשחזר בשני.<br>
     · <b>מעקב</b> (בתפריט התחתון) — רישום משקל לאורך זמן עם גרף מגמה.<br>
     · <b>מים</b> — מונה כוסות יומי בכרטיס הסיכום של היום.<br>
     · פס צבעוני בכרטיס הסיכום מציג את <b>חלוקת הקלוריות</b> בין חלבון, פחמימות ושומן.<br>
@@ -1331,8 +1491,8 @@ $('#clearDay').onclick = ()=>{
     onOk:()=>{ delete S.days[curDay]; saveState(); render(); toast('היום נמחק'); }
   });
 };
-$('#navBackup').onclick = doBackup;
-$('#navRestore').onclick = ()=> $('#restoreFile').click();
+$('#navBackup').onclick = backupModal;
+$('#navExercise').onclick = exerciseModal;
 $('#restoreFile').addEventListener('change', e=>{
   if(e.target.files[0]) doRestoreFile(e.target.files[0]);
   e.target.value='';
@@ -1413,4 +1573,4 @@ loadDB().then(()=>{ setHeadH(); render(); }).catch(()=>{
 });
 </script>
 </body>
-                     </html>
+  </html>
