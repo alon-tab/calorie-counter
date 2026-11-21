@@ -206,6 +206,11 @@ footer.bar button:hover{background:#eef4f1}
   border-radius:8px; padding:2px 7px; white-space:nowrap;
 }
 .no-res{padding:14px; text-align:center; color:var(--muted); font-size:.85rem}
+.srow{display:flex; align-items:center; border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:none}
+.srow>button[data-s]{flex:1; border-bottom:none}
+.srow .sdel{flex:none}
+.results .srow .sdel{width:auto; border:none; padding:0 8px}
 
 /* chosen food */
 .chosen{
@@ -388,12 +393,13 @@ let curDay = todayStr();
 function loadState(){
   try{
     const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return {v:1, days:{}, custom:[]};
+    if(!raw) return {v:1, days:{}, custom:[], saved:[]};
     const s = JSON.parse(raw);
-    if(!s || typeof s!=='object' || !s.days) return {v:1, days:{}, custom:[]};
+    if(!s || typeof s!=='object' || !s.days) return {v:1, days:{}, custom:[], saved:[]};
     s.custom = s.custom || [];
+    s.saved = s.saved || [];
     return s;
-  }catch(e){ return {v:1, days:{}, custom:[]}; }
+  }catch(e){ return {v:1, days:{}, custom:[], saved:[]}; }
 }
 function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
 function todayStr(){
@@ -416,6 +422,20 @@ function r1(x){ const v=Math.round(x*10)/10; return Number.isInteger(v)? String(
 function itemGrams(it){ return it.mode==='u' ? it.amt*it.ug : it.amt; }
 function itemKcal(it){ return it.k * itemGrams(it) / 100; }
 function itemMacro(it, key){ return it[key] * itemGrams(it) / 100; }
+function itemQtyText(it){
+  const g = itemGrams(it);
+  return it.mode==='u' ? `${r1(it.amt)} × ${it.unit} (${r1(g)} גרם)`
+    : it.mode==='ml' ? `${r1(it.amt)} מ״ל (≈${r1(g)} גרם)` : `${r1(it.amt)} גרם`;
+}
+function cloneItems(items){
+  return items.map(it=>{
+    const c = Object.assign({}, it);
+    c.uOpts = it.uOpts ? it.uOpts.map(u=>Object.assign({}, u)) : undefined;
+    delete c.id;
+    return c;
+  });
+}
+function savedKcal(s){ return s.items.reduce((a,it)=>a+itemKcal(it),0); }
 function getDay(){ return S.days[curDay] || (S.days[curDay] = {meals:[]}); }
 function dayTotals(){
   const d = S.days[curDay];
@@ -445,6 +465,22 @@ function searchFoods(q){
   }
   out.sort((a,b)=> a[0]-b[0] || a[1].n.length-b[1].n.length);
   return out.slice(0,9).map(x=>x[1]);
+}
+
+/* ===== הקבועים שלך — המוצרים שנרשמים הכי הרבה ===== */
+function frequentItems(limit){
+  const map = new Map();
+  for(const iso of Object.keys(S.days)){
+    for(const meal of (S.days[iso].meals||[])) for(const it of (meal.items||[])){
+      const key = [it.name, it.mode, it.unit||'', it.ug||'', it.amt].join('|');
+      const e = map.get(key);
+      if(e){ e.count++; if(iso > e.last) e.last = iso; }
+      else map.set(key, {count:1, last:iso, it});
+    }
+  }
+  return [...map.values()]
+    .sort((a,b)=> b.count-a.count || (a.last<b.last?1:-1))
+    .slice(0, limit||8);
 }
 
 /* ===== רינדור ===== */
@@ -486,6 +522,7 @@ function render(){
       <div class="meal-head">
         <h2>${esc(meal.name)}</h2>
         <span class="mtotal">${Math.round(mtotal)} קק״ל</span>
+        <button class="icon-btn meal-save" data-id="${meal.id}" title="שמירה כארוחה שמורה" aria-label="שמירה כארוחה שמורה">📌</button>
         <button class="icon-btn meal-edit" data-id="${meal.id}" title="שינוי שם" aria-label="שינוי שם">✏️</button>
         <button class="icon-btn meal-del" data-id="${meal.id}" title="מחיקת ארוחה" aria-label="מחיקת ארוחה">🗑️</button>
       </div>
@@ -534,6 +571,7 @@ function itemModal(mealId, existing){
 
   openModal(`
     <div class="modal-head"><h3>${existing?'עריכת מצרך':'הוספת מצרך'} — ${esc(meal.name)}</h3><button class="icon-btn" data-x>✖️</button></div>
+    <div id="freqArea"></div>
     <div id="searchArea" class="field ${existing?'hidden':''}">
       <label>חיפוש במאגר (שם המוצר)</label>
       <input type="search" id="q" placeholder="למשל: בננה, חלב, לחם..." autocomplete="off">
@@ -547,12 +585,37 @@ function itemModal(mealId, existing){
     </div>`);
 
   modalRoot.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
-  const q = $('#q'), res = $('#res');
+  const q = $('#q'), res = $('#res'), freqArea = $('#freqArea');
+
+  function renderFreq(){
+    if(existing || !freqArea) return;
+    const list = frequentItems(8);
+    freqArea.innerHTML = list.length
+      ? `<div class="field"><label>הקבועים שלך — הוספה בלחיצה</label>
+        <div class="results" style="max-height:200px">${list.map((e,i)=>`<button data-f="${i}">
+          <span class="rn">${esc(e.it.name)}</span>
+          <span class="rk">${esc(itemQtyText(e.it))} · ${Math.round(itemKcal(e.it))} קק״ל · ×${e.count}</span></button>`).join('')}</div></div>`
+      : '';
+    freqArea.querySelectorAll('button[data-f]').forEach(b=>{
+      b.onclick = ()=>{
+        const e = list[+b.dataset.f];
+        const c = Object.assign({}, e.it);
+        c.uOpts = e.it.uOpts ? e.it.uOpts.map(u=>Object.assign({}, u)) : undefined;
+        c.id = uid();
+        meal.items.push(c);
+        saveState(); render();
+        toast(`נוסף: ${e.it.name} ✓`);
+        renderFreq();
+      };
+    });
+  }
+  if(!existing) renderFreq();
 
   if(q){
     q.focus();
     q.addEventListener('input', ()=>{
       const list = searchFoods(q.value);
+      if(freqArea) freqArea.classList.toggle('hidden', !!q.value.trim());
       res.innerHTML = list.length
         ? `<div class="results">${list.map((f,i)=>`<button data-i="${i}">
              <span class="rn">${f.custom?'✍️ ':''}${esc(f.n)}</span>
@@ -567,13 +630,14 @@ function itemModal(mealId, existing){
 
   function showPicked(){
     $('#searchArea').classList.add('hidden');
+    if(freqArea) freqArea.classList.add('hidden');
     const pa = $('#pickedArea'); pa.classList.remove('hidden');
     pa.innerHTML = `<div class="chosen">
       <div><div class="cn">${picked.custom?'✍️ ':''}${esc(picked.n)}</div>
       <div class="ck">${picked.k} קק״ל ל-100 גרם</div></div>
       <button id="unpick" title="בחירה אחרת" aria-label="בחירה אחרת">🔄</button></div>`;
     pa.querySelector('#unpick').onclick = ()=>{ picked=null; pa.classList.add('hidden'); $('#measureArea').classList.add('hidden');
-      if(!existing){ $('#searchArea').classList.remove('hidden'); q.focus(); } };
+      if(!existing){ $('#searchArea').classList.remove('hidden'); if(freqArea) freqArea.classList.remove('hidden'); q.focus(); } };
     renderMeasure();
   }
 
@@ -618,10 +682,14 @@ function itemModal(mealId, existing){
         ma.querySelectorAll('.mopt').forEach(x=>x.classList.remove('sel'));
         el.classList.add('sel');
         el.querySelector('input').checked=true;
+        if(!amt.dataset.touched){
+          amt.value = opts[i].mode==='u' ? 1 : 100;
+          if(!existing){ amt.focus(); amt.select(); }
+        }
         update();
       });
     });
-    amt.addEventListener('input', update);
+    amt.addEventListener('input', ()=>{ amt.dataset.touched='1'; update(); });
 
     if(existing){
       let idx = 0;
@@ -661,12 +729,19 @@ function itemModal(mealId, existing){
 
 /* ===== ארוחות ===== */
 function mealModal(){
+  const saved = S.saved;
   openModal(`
     <div class="modal-head"><h3>ארוחה / מוצר חדש</h3><button class="icon-btn" data-x>✖️</button></div>
     <div class="field"><label>שם</label><input type="text" id="mname" placeholder="למשל: ארוחת בוקר, סלט צהריים..."></div>
     <div class="qchips" id="qchips">
       ${['בוקר','צהריים','ערב','נשנושים'].map(n=>`<button>${n}</button>`).join('')}
     </div>
+    ${saved.length ? `<div class="field"><label>הארוחות השמורות שלי — הוספה עם כל הפירוט</label>
+      <div class="results" style="max-height:220px">${saved.map((s,i)=>`<div class="srow">
+        <button data-s="${i}"><span class="rn">📌 ${esc(s.n)}</span>
+        <span class="rk">${s.items.length} מצרכים · ${Math.round(savedKcal(s))} קק״ל</span></button>
+        <button class="icon-btn sdel" data-sdel="${i}" title="מחיקת הארוחה השמורה" aria-label="מחיקת הארוחה השמורה">🗑️</button>
+      </div>`).join('')}</div></div>` : ''}
     <div class="modal-actions">
       <button class="btn btn-ghost" data-x style="flex:1">ביטול</button>
       <button class="btn btn-brand" id="ok" style="flex:2">יצירה</button>
@@ -674,12 +749,65 @@ function mealModal(){
   modalRoot.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
   const inp = $('#mname'); inp.focus();
   $('#qchips').querySelectorAll('button').forEach(b=> b.onclick=()=>{ inp.value=b.textContent; });
+  modalRoot.querySelectorAll('button[data-s]').forEach(b=> b.onclick=()=>{
+    const s = saved[+b.dataset.s];
+    getDay().meals.push({id:uid(), name:s.n, savedId:s.id,
+      items: cloneItems(s.items).map(it=>{ it.id=uid(); return it; })});
+    saveState(); closeModal(); render();
+    toast(`נוספה "${s.n}" עם ${s.items.length} מצרכים ✓`);
+  });
+  modalRoot.querySelectorAll('button[data-sdel]').forEach(b=> b.onclick=()=>{
+    const s = saved[+b.dataset.sdel];
+    showConfirm({
+      title:'מחיקת ארוחה שמורה',
+      text:`למחוק את "${s.n}" מהארוחות השמורות? רשומות שכבר נוספו לימים לא יימחקו.`,
+      okLabel:'מחיקה',
+      onOk:()=>{
+        S.saved = S.saved.filter(x=>x.id!==s.id);
+        saveState(); toast('הארוחה השמורה נמחקה');
+        mealModal();
+      }
+    });
+  });
   $('#ok').onclick = ()=>{
     const name = inp.value.trim() || 'ארוחה';
     getDay().meals.push({id:uid(), name, items:[]});
     saveState(); closeModal(); render();
   };
   inp.addEventListener('keydown', e=>{ if(e.key==='Enter') $('#ok').click(); });
+}
+
+/* ===== שמירת ארוחה כארוחה שמורה ===== */
+function saveMealModal(meal){
+  if(!meal.items.length){ toast('אין מצרכים בארוחה — קודם מוסיפים מצרכים'); return; }
+  const linked = meal.savedId ? S.saved.find(s=>s.id===meal.savedId) : null;
+  const total = Math.round(meal.items.reduce((s,it)=>s+itemKcal(it),0));
+  openModal(`
+    <div class="modal-head"><h3>שמירה כארוחה שמורה</h3><button class="icon-btn" data-x>✖️</button></div>
+    <div class="field"><label>שם הארוחה השמורה</label><input type="text" id="smn" value="${esc(linked?linked.n:meal.name)}"></div>
+    <p class="hint">תישמר עם ${meal.items.length} מצרכים (${total} קק״ל) ותהיה זמינה להוספה בלחיצה אחת, בכל יום. אפשר לערוך אחרי ההוספה ולשמור שוב כגרסה חדשה.</p>
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="btn btn-ghost" data-x style="flex:1">ביטול</button>
+      ${linked ? `<button class="btn btn-ghost" id="upd" style="flex:2">עדכון "${esc(linked.n)}"</button>` : ''}
+      <button class="btn btn-brand" id="saveNew" style="flex:2">${linked?'שמירה כגרסה חדשה':'שמירה'}</button>
+    </div>`);
+  modalRoot.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
+  const nameInput = $('#smn'); nameInput.focus(); nameInput.select();
+  const upd = $('#upd');
+  if(upd) upd.onclick = ()=>{
+    linked.n = nameInput.value.trim() || linked.n;
+    linked.items = cloneItems(meal.items);
+    saveState(); closeModal(); render();
+    toast(`הארוחה השמורה "${linked.n}" עודכנה ✓`);
+  };
+  $('#saveNew').onclick = ()=>{
+    const name = nameInput.value.trim() || meal.name;
+    const rec = {id:uid(), n:name, items:cloneItems(meal.items)};
+    S.saved.push(rec);
+    meal.savedId = rec.id;
+    saveState(); closeModal(); render();
+    toast(`נשמרה הארוחה "${name}" ✓`);
+  };
 }
 
 /* ===== מוצר ידני ===== */
@@ -708,7 +836,7 @@ function customModal(){
 
 /* ===== גיבוי ושחזור ===== */
 function doBackup(){
-  const payload = {app:'calorie-counter', v:1, exportedAt:new Date().toISOString(), days:S.days, custom:S.custom};
+  const payload = {app:'calorie-counter', v:1, exportedAt:new Date().toISOString(), days:S.days, custom:S.custom, saved:S.saved};
   const blob = new Blob([JSON.stringify(payload,null,1)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -732,7 +860,7 @@ function doRestoreFile(file){
       warn:'פעולה זו תחליף ותמחק את כל הנתונים הקיימים כרגע באפליקציה. אם יש נתונים חשובים — כדאי להוריד גיבוי שלהם קודם.',
       okLabel:'כן, שחזרי',
       onOk:()=>{
-        S = {v:1, days:data.days, custom:Array.isArray(data.custom)?data.custom:[]};
+        S = {v:1, days:data.days, custom:Array.isArray(data.custom)?data.custom:[], saved:Array.isArray(data.saved)?data.saved:[]};
         saveState(); render(); toast('הנתונים שוחזרו ✓');
       }
     });
@@ -750,6 +878,8 @@ function infoModal(){
     </p>
     <p class="confirm-text">· כל הנתונים נשמרים <b>במכשיר בלבד</b> (אחסון מקומי) — שום דבר לא נשלח לשום שרת.<br>
     · מ״ל מחושב כקירוב 1:1 לגרם, ומתאים בעיקר לנוזלים.<br>
+    · 📌 ליד כל ארוחה שומר אותה כ<b>ארוחה שמורה</b> עם כל הפירוט — אפשר להוסיף אותה שוב בלחיצה אחת, לערוך ולשמור כגרסה חדשה.<br>
+    · בחלון הוספת מצרך מופיעים <b>הקבועים שלך</b> — המוצרים שנרשמים הכי הרבה, עם הכמות הרגילה, להוספה מהירה.<br>
     · מומלץ לעשות <b>גיבוי</b> מדי פעם (כפתור 💾 למטה) ולשמור את הקובץ.</p>
     <div class="modal-actions"><button class="btn btn-brand btn-block" data-x>סגירה</button></div>`);
   modalRoot.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
@@ -876,6 +1006,9 @@ mealsEl.addEventListener('click', e=>{
         saveState(); render(); toast('המצרך נמחק');
       }
     });
+  }else if(btn.classList.contains('meal-save')){
+    const meal = day.meals.find(m=>m.id===btn.dataset.id);
+    if(meal) saveMealModal(meal);
   }else if(btn.classList.contains('meal-edit')){
     const meal = day.meals.find(m=>m.id===btn.dataset.id);
     if(!meal) return;
