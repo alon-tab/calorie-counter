@@ -239,13 +239,69 @@ footer.bar button:hover{background:#eef4f1}
 }
 .hidden{display:none !important}
 .attrib{padding:0 14px; text-align:center; font-size:.68rem; color:var(--muted)}
+/* Read-only weekly / monthly reports */
+#calendarBtn{margin-inline-start:auto;flex:none;display:flex;align-items:center;gap:7px;background:#ffffff24;border:1px solid #ffffff40;border-radius:12px;color:#fff;padding:8px 10px;font:500 .78rem inherit;cursor:pointer;min-height:42px}
+#calendarBtn svg{width:21px;height:21px}
+.header-title{display:flex;align-items:center;gap:8px}
+.header-title h1{flex:1;font-size:1.2rem;flex-wrap:wrap;gap:3px 7px}
+.header-title h1 .sub{display:block;width:100%;padding-inline-start:28px;font-size:.67rem}
+.report-modal{gap:14px;max-height:95dvh;padding:20px 18px calc(22px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+.report-eyebrow{font-size:.72rem;color:var(--muted);margin-bottom:2px}
+.report-modal h3{font-size:1.3rem}
+.report-tabs{display:flex;background:var(--bg);border-radius:13px;padding:4px;gap:4px}
+.report-tabs button{flex:1;border:0;border-radius:10px;padding:10px;font:600 .93rem 'Heebo',sans-serif;color:var(--muted);background:none;cursor:pointer}
+.report-tabs button[aria-selected=true]{background:#fff;color:var(--brand-d);box-shadow:var(--shadow)}
+.report-navigation{display:flex;align-items:center;gap:8px}
+.report-navigation h4{flex:1;text-align:center;font-size:.92rem;font-weight:600}
+.report-navigation button{border:1px solid var(--line);border-radius:12px;width:40px;height:40px;color:var(--brand-d);background:#fff;font-size:1.2rem;cursor:pointer;flex:none}
+.report-jump{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.report-jump label{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--muted)}
+.report-jump input{max-width:145px;min-width:0;border:1px solid var(--line);border-radius:9px;padding:7px;color:var(--ink);background:white;font:inherit;min-height:36px}
+.report-jump .btn{font-size:.72rem;padding:7px 10px;min-height:36px}
+.report-stats{display:grid;grid-template-columns:1.5fr 1fr;gap:10px}
+.report-stat{padding:13px 10px;background:var(--bg);border:1px solid var(--line);border-radius:15px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.report-stat b{font-size:1.7rem;line-height:1.2;font-weight:800;font-variant-numeric:tabular-nums}
+.report-stat b small{font-size:.95rem;color:var(--muted);font-weight:500}
+.report-stat span{font-size:.66rem;color:#52685e}
+.main-stat{background:var(--brand-soft);border-color:#c8eadd}
+.main-stat b{color:var(--brand-d)}
+.week-chart{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding-top:4px}
+.week-day{border:0;background:none;font-family:inherit;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--ink);cursor:pointer;border-radius:9px;padding:4px 0}
+.week-day .bar-value{font-size:.62rem;white-space:nowrap;color:var(--brand-d);font-weight:600;font-variant-numeric:tabular-nums}
+.bar-track{height:112px;width:65%;display:flex;align-items:flex-end;background:var(--bg);border-radius:7px;overflow:hidden}
+.bar-fill{width:100%;background:linear-gradient(0deg,var(--brand-d),#3bc69a);border-radius:6px;min-height:3px}
+.bar-fill.no-log{background:#a2b3ab}
+.week-day b{font-size:.78rem}.week-day small{font-size:.67rem;color:var(--muted)}
+.is-today{outline:2px solid var(--brand);outline-offset:-2px}
+.month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.weekday{text-align:center;font-size:.72rem;color:var(--muted);padding-bottom:3px}
+.month-day{background:var(--bg);border:1px solid transparent;border-radius:9px;min-width:0;min-height:48px;font-family:inherit;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:3px 0;cursor:pointer}
+.month-day b{font-size:.82rem;font-weight:500}.month-day span{font-size:.58rem;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.month-day.has-log{background:var(--brand-soft);color:var(--brand-d)}
+.month-day.has-log span{font-weight:700}.future-day:not(.has-log){background:#fafcfb}
+.report-key{display:flex;align-items:center;flex-wrap:wrap;gap:9px;font-size:.61rem;color:var(--muted)}
+.report-key span{display:flex;align-items:center;gap:4px}.report-key i{display:inline-block;width:8px;height:8px;border-radius:3px;background:var(--brand)}
+.today-key{margin-inline-start:auto}
+.report-total{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:12px;font-size:.8rem}
+.report-total b{font-size:1.05rem}.report-total small{font-size:.7rem;font-weight:400;color:var(--muted)}
+.report-macros{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.report-macros span{font-size:.68rem;color:var(--muted);background:var(--bg);border-radius:10px;padding:8px 2px}
+.report-macros b{display:block;color:var(--ink);font-size:.94rem;font-weight:600}
+.report-caption{font-size:.66rem;color:var(--muted);text-align:center;line-height:1.5}
+.report-plot .report-caption{margin-top:7px}
+.report-note{background:#f4f7f5;border-radius:10px;padding:10px 12px;font-size:.69rem;line-height:1.7;color:#52685e}
+.report-empty{display:flex;flex-direction:column;gap:5px;text-align:center;padding:8px 10px}.report-empty b{font-size:.86rem}.report-empty span{font-size:.74rem;color:var(--muted)}
+.report-modal button:focus-visible,.report-modal input:focus-visible,#calendarBtn:focus-visible{outline:3px solid #efad3b;outline-offset:2px}
+@media(max-width:350px){.report-modal{padding-inline:12px}.month-grid{gap:3px}.month-day span{font-size:.53rem}.header-title h1{font-size:1.05rem}#calendarBtn{padding:7px}.report-jump label{gap:4px}}
+@media(prefers-reduced-motion:reduce){.backdrop,.modal{animation:none}}
+
 </style>
 </head>
 <body>
 
 <header class="app">
   <div class="inner">
-    <h1>🍎 סופרת הקלוריות <span class="sub">במאגר משרד הבריאות</span></h1>
+    <div class="header-title"><h1>🍎 סופרת הקלוריות <span class="sub">במאגר משרד הבריאות</span></h1><button id="calendarBtn" aria-label="לוח שנה, סיכום שבועי וחודשי" title="סיכום שבועי וחודשי"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5M17 3v5M3 11h18M7 15h2M11 15h2M15 15h2M7 18h2M11 18h2"/></svg><span>סיכומים</span></button></div>
     <div class="daynav">
       <button id="prevDay" aria-label="יום קודם" title="יום קודם">→</button>
       <div class="daylabel" id="dayLabel" role="button" tabindex="0" title="בחירת תאריך">
@@ -428,7 +484,7 @@ function openModal(html){
   bd.addEventListener('click', e=>{ if(e.target===bd) closeModal(); });
   return bd;
 }
-function closeModal(){ modalRoot.innerHTML=''; }
+function closeModal(){ const wasReport=!!modalRoot.querySelector('.report-modal'); modalRoot.innerHTML=''; document.body.style.overflow=''; if(wasReport) $('#calendarBtn').focus(); }
 
 function showConfirm({title, text, warn, okLabel, onOk}){
   openModal(`
@@ -680,6 +736,77 @@ function infoModal(){
   modalRoot.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
 }
 
+/* Calendar reports are read-only projections of the existing v1 diary. */
+let reportMode = 'week', reportAnchor = curDay;
+const reportNumber = n => Math.round(n).toLocaleString('he-IL');
+function totalsForDate(iso){
+  const t = {k:0,p:0,c:0,f:0,items:0};
+  for(const meal of (S.days[iso]?.meals || [])) for(const it of meal.items){
+    t.k += itemKcal(it); t.p += itemMacro(it,'p'); t.c += itemMacro(it,'c'); t.f += itemMacro(it,'f'); t.items++;
+  }
+  return t;
+}
+function reportDates(anchor, mode){
+  const d = new Date(anchor+'T12:00:00');
+  const start = mode==='week' ? shiftDay(anchor,-d.getDay()) : anchor.slice(0,7)+'-01';
+  const length = mode==='week' ? 7 : new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+  return Array.from({length},(_,i)=>shiftDay(start,i));
+}
+function shiftReport(anchor, mode, delta){
+  if(mode==='week') return shiftDay(anchor,delta*7);
+  const d = new Date(anchor+'T12:00:00');
+  d.setDate(1); d.setMonth(d.getMonth()+delta);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
+}
+function reportModal(){
+  reportAnchor=curDay;
+  drawReport();
+}
+function drawReport(){
+  const dates=reportDates(reportAnchor,reportMode), today=todayStr();
+  const rows=dates.map(date=>({date,...totalsForDate(date)}));
+  const logged=rows.filter(r=>r.items>0);
+  const sum=logged.reduce((a,r)=>{for(const k of ['k','p','c','f'])a[k]+=r[k];return a;},{k:0,p:0,c:0,f:0});
+  const first=dates[0], last=dates[dates.length-1];
+  const shortDate=iso=>new Date(iso+'T12:00:00').toLocaleDateString('he-IL',{day:'numeric',month:'short'});
+  const title=reportMode==='week' ? `${shortDate(first)} עד ${shortDate(last)} · ${new Date(last+'T12:00:00').getFullYear()}` : new Date(first+'T12:00:00').toLocaleDateString('he-IL',{month:'long',year:'numeric'});
+  const max=Math.max(1,...rows.map(r=>r.k));
+  const days=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+  const cellLabel=r=>`${fmtDate(r.date)}: ${r.items ? reportNumber(r.k)+' קק״ל, פתיחת היומן' : 'ללא רישום, פתיחת היומן'}`;
+  const weekly=`<div class="week-chart" aria-label="קלוריות לפי יום">${rows.map((r,i)=>`<button class="week-day ${r.date===today?'is-today':''}" data-report-date="${r.date}" aria-label="${cellLabel(r)}"><span class="bar-value">${r.items?reportNumber(r.k):'–'}</span><span class="bar-track"><span class="bar-fill ${r.items?'':'no-log'}" style="height:${r.items?Math.max(3,r.k/max*100):3}%"></span></span><b>${days[i]}</b><small>${new Date(r.date+'T12:00:00').getDate()}</small></button>`).join('')}</div>`;
+  const offset=new Date(first+'T12:00:00').getDay();
+  const monthly=`<div class="month-grid">${days.map(d=>`<span class="weekday">${d}</span>`).join('')}${'<span aria-hidden="true"></span>'.repeat(offset)}${rows.map(r=>`<button class="month-day ${r.items?'has-log':''} ${r.date===today?'is-today':''} ${r.date>today?'future-day':''}" data-report-date="${r.date}" aria-label="${cellLabel(r)}"><b>${Number(r.date.slice(-2))}</b><span>${r.items?reportNumber(r.k):'–'}</span></button>`).join('')}</div><p class="report-caption">המספר בכל יום הוא סך הקלוריות · קק״ל</p>`;
+  openModal(`<div class="modal-head"><div><div class="report-eyebrow">היומן שלך, במבט רחב</div><h3 id="reportTitle">סיכום ומגמות</h3></div><button class="icon-btn" data-report-close aria-label="סגירת הסיכום">✕</button></div>
+    <div class="report-tabs" role="tablist" aria-label="טווח הסיכום"><button role="tab" aria-selected="${reportMode==='week'}" data-mode="week">שבועי</button><button role="tab" aria-selected="${reportMode==='month'}" data-mode="month">חודשי</button></div>
+    <div class="report-navigation"><button data-period="-1" aria-label="${reportMode==='week'?'שבוע קודם':'חודש קודם'}">→</button><h4 aria-live="polite">${title}</h4><button data-period="1" aria-label="${reportMode==='week'?'שבוע הבא':'חודש הבא'}">←</button></div>
+    <div class="report-jump"><label>מעבר לתאריך <input type="date" id="reportDate" value="${reportAnchor}"></label><button class="btn btn-ghost" id="reportToday">${reportMode==='week'?'השבוע':'החודש'}</button></div>
+    <div class="report-stats"><div class="report-stat main-stat"><b>${logged.length?reportNumber(sum.k/logged.length):'–'}</b><span>ממוצע קק״ל ליום עם רישום</span></div><div class="report-stat"><b>${logged.length}</b><span>ימים עם רישום מתוך ${dates.length}</span></div></div>
+    <section class="report-plot" aria-label="${reportMode==='week'?'גרף שבועי':'לוח חודשי'}">${reportMode==='week'?weekly:monthly}</section>
+    <div class="report-key"><span><i></i> יום עם רישום</span><span>– ללא רישום</span><span class="today-key">מסגרת: היום</span></div>
+    ${logged.length?`<div class="report-total">סך הכול בתקופה <b>${reportNumber(sum.k)} <small>קק״ל</small></b></div><div class="report-macros"><span><b>${r1(sum.p/logged.length)}</b> חלבון</span><span><b>${r1(sum.c/logged.length)}</b> פחמימות</span><span><b>${r1(sum.f/logged.length)}</b> שומן</span></div><p class="report-caption">ממוצע גרמים ליום עם רישום</p>`:'<div class="report-empty"><b>עוד אין רישומים בתקופה הזו</b><span>לחצי על יום כדי לפתוח את היומן ולהוסיף ארוחה.</span></div>'}
+    <p class="report-note">הממוצעים כוללים רק ימים עם מצרכים, גם אם הרישום חלקי. יום ללא רישום אינו נחשב לאפס קלוריות.${logged.some(r=>r.date===today)?' היום כלול וייתכן שטרם הושלם.':''}</p><p class="report-caption">לחצי על יום כדי לראות או לערוך את הארוחות שלו.</p>`);
+  const dialog=modalRoot.querySelector('.modal');
+  dialog.classList.add('report-modal'); dialog.setAttribute('aria-labelledby','reportTitle');
+  document.body.style.overflow='hidden';
+  modalRoot.querySelector('[data-report-close]').onclick=closeModal;
+  modalRoot.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{reportMode=b.dataset.mode;drawReport();modalRoot.querySelector(`[data-mode="${reportMode}"]`).focus();});
+  modalRoot.querySelectorAll('[data-period]').forEach(b=>b.onclick=()=>{const delta=+b.dataset.period;reportAnchor=shiftReport(reportAnchor,reportMode,delta);drawReport();modalRoot.querySelector(`[data-period="${delta}"]`).focus();});
+  $('#reportToday').onclick=()=>{reportAnchor=todayStr();drawReport();$('#reportToday').focus();};
+  $('#reportDate').onchange=e=>{if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)){reportAnchor=e.target.value;drawReport();$('#reportDate').focus();}};
+  modalRoot.querySelectorAll('[data-report-date]').forEach(b=>b.onclick=()=>{curDay=b.dataset.reportDate;closeModal();render();$('#calendarBtn').focus();});
+  modalRoot.querySelector('[data-report-close]').focus();
+}
+document.addEventListener('keydown',e=>{
+  const report=modalRoot.querySelector('.report-modal'); if(!report)return;
+  if(e.key==='Escape'){e.preventDefault();closeModal();$('#calendarBtn').focus();}
+  if(e.key==='Tab'){
+    const items=[...report.querySelectorAll('button,input')], first=items[0],last=items[items.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  }
+});
+$('#calendarBtn').onclick=reportModal;
+
 /* ===== אירועים ===== */
 $('#prevDay').onclick = ()=>{ curDay = shiftDay(curDay,-1); render(); };
 $('#nextDay').onclick = ()=>{ curDay = shiftDay(curDay, 1); render(); };
@@ -767,4 +894,4 @@ loadDB().then(()=>render()).catch(()=>{
 });
 </script>
 </body>
-</html>
+  </html>
